@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-//import 'signup.dart';
-
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'login.dart';
-// Helper function to convert hex string to Color object
+import 'package:flutter/services.dart';
+
 Color hexToColor(String hexString) {
   final buffer = StringBuffer();
   if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
@@ -10,25 +11,83 @@ Color hexToColor(String hexString) {
   return Color(int.parse(buffer.toString(), radix: 16));
 }
 
-// Define the colors from the palette for easy use
 final Color primaryBlueLight = hexToColor('#7BD5F5'); // Light blue
 final Color primaryPurpleBlue = hexToColor('#787FF6'); // Purple-blue (for gradient)
 final Color primaryTeal = hexToColor('#4ADEDE');     // Teal
 final Color primaryBlue = hexToColor('#1CA7CE');    // Medium blue
 final Color primaryDarkBlue = hexToColor('#1F2F98');  // Dark blue
 
-
-
 class OtpScreen extends StatefulWidget {
-  const OtpScreen({super.key});
+  final String email;
+
+  const OtpScreen({super.key, required this.email});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
 }
 
 class _OtpScreenState extends State<OtpScreen> {
-  //bool _rememberMe = false; // State for the "Remember Me" checkbox
-  bool _obscurePassword = true; // <-- Add this in your State class
+
+  final url = Uri.parse("http://192.168.178.99:80/api/v1/verification/");
+  final List<TextEditingController> _otpControllers =
+  List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes =
+  List.generate(6, (_) => FocusNode());
+
+  @override
+  void dispose() {
+    for (var c in _otpControllers) {
+      c.dispose();
+    }
+    for (var f in _focusNodes) {
+      f.dispose();
+    }
+    super.dispose();
+  }
+
+  Widget _buildOtpFields() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: List.generate(6, (index) {
+        return SizedBox(
+          width: 45,
+          child: TextField(
+            controller: _otpControllers[index],
+            focusNode: _focusNodes[index],
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 20),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(1),
+            ],
+            onChanged: (value) {
+              if (value.isNotEmpty) {
+                if (index < 5) {
+                  _focusNodes[index + 1].requestFocus();
+                } else {
+                  _focusNodes[index].unfocus();
+                }
+              }
+            },
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.all(10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.grey),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: primaryBlue, width: 1),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,7 +101,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Color(0xFF7BD5F5), // light blue
+                      Color(0xFF7BD5F5),
                       Color(0xFF1F2F98),
                     ]
                 )
@@ -65,7 +124,7 @@ class _OtpScreenState extends State<OtpScreen> {
                         Text(
                           'OTP',
                           style: TextStyle(
-                            color: Colors.white, // White text on the dark gradient
+                            color: Colors.white,
                             fontSize: 36,
                             fontWeight: FontWeight.bold,
                           ),
@@ -84,13 +143,13 @@ class _OtpScreenState extends State<OtpScreen> {
                       height: double.infinity,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.3), // White background for the card
+                        color: Colors.white.withOpacity(0.3),
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(30),
-                        ),// Rounded corners for the card
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.2), // Subtle shadow for depth
+                            color: Colors.grey.withOpacity(0.2),
                             spreadRadius: 5,
                             blurRadius: 7,
                             offset: const Offset(0, 3),
@@ -101,15 +160,15 @@ class _OtpScreenState extends State<OtpScreen> {
                     Padding(
                       padding: const EdgeInsets.only(left: 30,top: 30),
                       child: Container(
-                        //padding: const EdgeInsets.only(left: 30),
+
                         decoration: BoxDecoration(
-                          color: Colors.white, // White background for the card
+                          color: Colors.white,
                           borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(30),
-                          ),// Rounded corners for the card
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey.withOpacity(0.2), // Subtle shadow for depth
+                              color: Colors.grey.withOpacity(0.2),
                               spreadRadius: 5,
                               blurRadius: 7,
                               offset: const Offset(0, 3),
@@ -124,7 +183,6 @@ class _OtpScreenState extends State<OtpScreen> {
                             child: Container(
                               width: double.infinity,
                               child: Column(
-                                //mainAxisSize: MainAxisSize.min, // Column takes minimum required space
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Padding(
@@ -135,141 +193,8 @@ class _OtpScreenState extends State<OtpScreen> {
                                     ),
                                   ),
                                   SizedBox(height: 40),
-                                 Row(
-                                   children: [
-                                     Expanded(
-                                       child: TextField(
-                                         decoration: InputDecoration(
-                                           filled: true,
-                                           fillColor: Colors.white, // Changed to pure white as per image 2
-                                           border: OutlineInputBorder(
-                                             borderRadius: BorderRadius.circular(15), // Rounded corners for input
-                                             borderSide: const BorderSide(color: Colors.grey, width: 0.5), // Adding a very thin light grey border
-                                           ),
-                                           enabledBorder: OutlineInputBorder( // Add an enabled border for a slight outline
-                                             borderRadius: BorderRadius.circular(15),
-                                             borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 0.5), // Very light grey border
-                                           ),
-                                           focusedBorder: OutlineInputBorder( // Focus border to match the theme
-                                             borderRadius: BorderRadius.circular(15),
-                                             borderSide: BorderSide(color: primaryBlue, width: 1),
-                                           ),
-                                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                                         ),
-                                       ),
-                                     ),
-                                     SizedBox(width: 5,),
-                                     Expanded(
-                                       child: TextField(
-                                         decoration: InputDecoration(
-                                           filled: true,
-                                           fillColor: Colors.white, // Changed to pure white as per image 2
-                                           border: OutlineInputBorder(
-                                             borderRadius: BorderRadius.circular(15), // Rounded corners for input
-                                             borderSide: const BorderSide(color: Colors.grey, width: 0.5), // Adding a very thin light grey border
-                                           ),
-                                           enabledBorder: OutlineInputBorder( // Add an enabled border for a slight outline
-                                             borderRadius: BorderRadius.circular(15),
-                                             borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 0.5), // Very light grey border
-                                           ),
-                                           focusedBorder: OutlineInputBorder( // Focus border to match the theme
-                                             borderRadius: BorderRadius.circular(15),
-                                             borderSide: BorderSide(color: primaryBlue, width: 1),
-                                           ),
-                                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                                         ),
-                                       ),
-                                     ),
-                                     SizedBox(width: 5,),
-                                     Expanded(
-                                       child: TextField(
-                                         decoration: InputDecoration(
-                                           filled: true,
-                                           fillColor: Colors.white, // Changed to pure white as per image 2
-                                           border: OutlineInputBorder(
-                                             borderRadius: BorderRadius.circular(15), // Rounded corners for input
-                                             borderSide: const BorderSide(color: Colors.grey, width: 0.5), // Adding a very thin light grey border
-                                           ),
-                                           enabledBorder: OutlineInputBorder( // Add an enabled border for a slight outline
-                                             borderRadius: BorderRadius.circular(15),
-                                             borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 0.5), // Very light grey border
-                                           ),
-                                           focusedBorder: OutlineInputBorder( // Focus border to match the theme
-                                             borderRadius: BorderRadius.circular(15),
-                                             borderSide: BorderSide(color: primaryBlue, width: 1),
-                                           ),
-                                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                                         ),
-                                       ),
-                                     ),
-                                     SizedBox(width: 5,),
-                                     Expanded(
-                                       child: TextField(
-                                         decoration: InputDecoration(
-                                           filled: true,
-                                           fillColor: Colors.white, // Changed to pure white as per image 2
-                                           border: OutlineInputBorder(
-                                             borderRadius: BorderRadius.circular(15), // Rounded corners for input
-                                             borderSide: const BorderSide(color: Colors.grey, width: 0.5), // Adding a very thin light grey border
-                                           ),
-                                           enabledBorder: OutlineInputBorder( // Add an enabled border for a slight outline
-                                             borderRadius: BorderRadius.circular(15),
-                                             borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 0.5), // Very light grey border
-                                           ),
-                                           focusedBorder: OutlineInputBorder( // Focus border to match the theme
-                                             borderRadius: BorderRadius.circular(15),
-                                             borderSide: BorderSide(color: primaryBlue, width: 1),
-                                           ),
-                                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                                         ),
-                                       ),
-                                     ),
-                                     SizedBox(width: 5,),
-                                     Expanded(
-                                       child: TextField(
-                                         decoration: InputDecoration(
-                                           filled: true,
-                                           fillColor: Colors.white, // Changed to pure white as per image 2
-                                           border: OutlineInputBorder(
-                                             borderRadius: BorderRadius.circular(15), // Rounded corners for input
-                                             borderSide: const BorderSide(color: Colors.grey, width: 0.5), // Adding a very thin light grey border
-                                           ),
-                                           enabledBorder: OutlineInputBorder( // Add an enabled border for a slight outline
-                                             borderRadius: BorderRadius.circular(15),
-                                             borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 0.5), // Very light grey border
-                                           ),
-                                           focusedBorder: OutlineInputBorder( // Focus border to match the theme
-                                             borderRadius: BorderRadius.circular(15),
-                                             borderSide: BorderSide(color: primaryBlue, width: 1),
-                                           ),
-                                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                                         ),
-                                       ),
-                                     ),
-                                     SizedBox(width: 5,),
-                                     Expanded(
-                                       child: TextField(
-                                         decoration: InputDecoration(
-                                           filled: true,
-                                           fillColor: Colors.white, // Changed to pure white as per image 2
-                                           border: OutlineInputBorder(
-                                             borderRadius: BorderRadius.circular(15), // Rounded corners for input
-                                             borderSide: const BorderSide(color: Colors.grey, width: 0.5), // Adding a very thin light grey border
-                                           ),
-                                           enabledBorder: OutlineInputBorder( // Add an enabled border for a slight outline
-                                             borderRadius: BorderRadius.circular(15),
-                                             borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 0.5), // Very light grey border
-                                           ),
-                                           focusedBorder: OutlineInputBorder( // Focus border to match the theme
-                                             borderRadius: BorderRadius.circular(15),
-                                             borderSide: BorderSide(color: primaryBlue, width: 1),
-                                           ),
-                                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                                         ),
-                                       ),
-                                     ),
-                                   ],
-                                 ),
+                                  _buildOtpFields(),
+
 
 
                                   SizedBox(height: 20,),
@@ -290,7 +215,7 @@ class _OtpScreenState extends State<OtpScreen> {
                                               PageRouteBuilder(
                                                 pageBuilder: (context, animation, secondaryAnimation) => LoginScreen(),
                                                 transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                                  const begin = Offset(1.0, 0.0); // Slide from right
+                                                  const begin = Offset(1.0, 0.0);
                                                   const end = Offset.zero;
                                                   const curve = Curves.ease;
 
@@ -309,7 +234,7 @@ class _OtpScreenState extends State<OtpScreen> {
                                           child: Text(
                                             'Log In',
                                             style: TextStyle(
-                                              color: primaryBlue, // Medium blue for links
+                                              color: primaryBlue,
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
@@ -322,21 +247,19 @@ class _OtpScreenState extends State<OtpScreen> {
                                     children: [
                                       const Spacer(),
                                       const Spacer(),
-                                      // Sign In Button with Gradient
                                       Expanded(
-                                        // Takes available space next to the checkbox
                                         child: Container(
-                                          height: 50, // Fixed height for the button
+                                          height: 50,
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
-                                              colors: [primaryPurpleBlue, primaryTeal], // Gradient as requested
+                                              colors: [primaryPurpleBlue, primaryTeal],
                                               begin: Alignment.topLeft,
                                               end: Alignment.bottomRight,
                                             ),
-                                            borderRadius: BorderRadius.circular(15), // Rounded corners
+                                            borderRadius: BorderRadius.circular(15),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: primaryPurpleBlue.withOpacity(0.3), // Subtle shadow for button
+                                                color: primaryPurpleBlue.withOpacity(0.3),
                                                 spreadRadius: 2,
                                                 blurRadius: 5,
                                                 offset: const Offset(0, 3),
@@ -344,15 +267,62 @@ class _OtpScreenState extends State<OtpScreen> {
                                             ],
                                           ),
                                           child: MaterialButton(
-                                            onPressed: () {
-                                              // TODO: Implement sign in logic
+                                            onPressed: () async {
+                                              String otp = _otpControllers.map((e) => e.text.trim()).join();
+                                              if (otp.length < 6) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(content: Text('Please enter full 6-digit code')),
+                                                );
+                                                return;
+                                              }
+
+                                              showDialog(
+                                                context: context,
+                                                barrierDismissible: false,
+                                                builder: (_) => const Center(child: CircularProgressIndicator()),
+                                              );
+
+                                              try {
+                                                final response = await http.post(
+                                                  url,
+                                                  headers: {'Content-Type': 'application/json'},
+                                                  body: jsonEncode({'email': widget.email, 'otp': otp}),
+                                                );
+                                                Navigator.of(context).pop();
+
+                                                print('Response status: ${response.statusCode}');
+                                                print('Response body: ${response.body}');
+
+                                                if (response.statusCode == 200) {
+                                                  try {
+                                                      final data = jsonDecode(response.body);
+
+
+                                                if (data['status'] == 'success') {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(content: Text(data['en'] ?? 'تم التحقق بنجاح')),
+                                                  );
+                                                  await Future.delayed(const Duration(milliseconds: 500));
+                                                  Navigator.of(context).pushReplacement(
+                                                    MaterialPageRoute(builder: (_) => LoginScreen()),
+                                                  );
+                                                } else {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(content: Text(data['en'] ?? 'فشل التحقق')),
+                                                  );
+                                                }
+                                              } catch (e) {
+                                                Navigator.of(context).pop();
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(content: Text('خطأ في الاتصال بالخادم')),
+                                                );
+                                              }
                                             },
                                             shape: RoundedRectangleBorder(
                                               borderRadius: BorderRadius.circular(15),
                                             ),
-                                            padding: EdgeInsets.zero, // Remove default MaterialButton padding
+                                            padding: EdgeInsets.zero,
                                             child: Ink(
-                                              // Ink widget for a consistent gradient background for the touch ripple
                                               decoration: BoxDecoration(
                                                 gradient: LinearGradient(
                                                   colors: [primaryPurpleBlue, primaryTeal],
@@ -366,7 +336,7 @@ class _OtpScreenState extends State<OtpScreen> {
                                                 child: const Text(
                                                   'Verify',
                                                   style: TextStyle(
-                                                    color: Colors.white, // White text for button
+                                                    color: Colors.white,
                                                     fontSize: 18,
                                                     fontWeight: FontWeight.bold,
                                                   ),
@@ -374,6 +344,7 @@ class _OtpScreenState extends State<OtpScreen> {
                                               ),
                                             ),
                                           ),
+
                                         ),
                                       ),
                                     ],

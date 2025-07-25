@@ -27,7 +27,7 @@ class _LibraryScreenState extends State<LibraryScreen> with AutomaticKeepAliveCl
     },
   ];
 
-  final Map<String, double?> downloadProgress = {}; // fileName => progress (null = indeterminate)
+  final Map<String, double?> downloadProgress = {};
 
   Future<Directory> getDownloadDirectory() async {
     if (Platform.isAndroid) {
@@ -63,7 +63,7 @@ class _LibraryScreenState extends State<LibraryScreen> with AutomaticKeepAliveCl
     int received = 0;
 
     setState(() {
-      downloadProgress[fileName] = null; // start indeterminate
+      downloadProgress[fileName] = null;
     });
 
     final stream = response.stream.asBroadcastStream();

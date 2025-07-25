@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:newno/library.dart';
 import 'home.dart';
 import 'signup.dart';
-// Helper function to convert hex string to Color object
+
 Color hexToColor(String hexString) {
   final buffer = StringBuffer();
   if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
@@ -10,7 +10,6 @@ Color hexToColor(String hexString) {
   return Color(int.parse(buffer.toString(), radix: 16));
 }
 
-// Define the colors from the palette for easy use
 final Color primaryBlueLight = hexToColor('#7BD5F5'); // Light blue
 final Color primaryPurpleBlue = hexToColor('#787FF6'); // Purple-blue (for gradient)
 final Color primaryTeal = hexToColor('#4ADEDE');     // Teal
@@ -27,7 +26,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  bool _rememberMe = false; // State for the "Remember Me" checkbox
+  bool _rememberMe = false;
   bool _obscurePassword = true;
   @override
   Widget build(BuildContext context) {
@@ -42,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Color(0xFF7BD5F5), // light blue
+                      Color(0xFF7BD5F5),
                       Color(0xFF1F2F98),
                     ]
                 )
@@ -66,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         'Login',
                         style: TextStyle(
-                          color: Colors.white, // White text on the dark gradient
+                          color: Colors.white,
                           fontSize: 36,
                           fontWeight: FontWeight.bold,
                         ),
@@ -85,13 +84,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             height: double.infinity,
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.3), // White background for the card
+                              color: Colors.white.withOpacity(0.3),
                               borderRadius: const BorderRadius.only(
                                 topLeft: Radius.circular(30),
-                              ),// Rounded corners for the card
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.grey.withOpacity(0.2), // Subtle shadow for depth
+                                  color: Colors.grey.withOpacity(0.2),
                                   spreadRadius: 5,
                                   blurRadius: 7,
                                   offset: const Offset(0, 3),
@@ -102,15 +101,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           Padding(
                             padding: const EdgeInsets.only(left: 30,top: 30),
                             child: Container(
-                              //padding: const EdgeInsets.only(left: 30),
                               decoration: BoxDecoration(
-                                color: Colors.white, // White background for the card
+                                color: Colors.white,
                                 borderRadius: const BorderRadius.only(
                                   topLeft: Radius.circular(30),
-                                ),// Rounded corners for the card
+                                ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.grey.withOpacity(0.2), // Subtle shadow for depth
+                                    color: Colors.grey.withOpacity(0.2),
                                     spreadRadius: 5,
                                     blurRadius: 7,
                                     offset: const Offset(0, 3),
@@ -125,9 +123,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: Container(
                                 width: double.infinity,
                                 child: Column(
-                                  mainAxisSize: MainAxisSize.min, // Column takes minimum required space
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    // Username Text Field
                                     TextField(
                                       decoration: InputDecoration(
                                         labelText: 'Email',
@@ -135,25 +132,24 @@ class _LoginScreenState extends State<LoginScreen> {
                                         labelStyle: TextStyle(color: Colors.grey[700]),
                                         hintStyle: TextStyle(color: Colors.grey[400]),
                                         filled: true,
-                                        fillColor: Colors.white, // Changed to pure white as per image 2
+                                        fillColor: Colors.white,
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(15), // Rounded corners for input
-                                          borderSide: const BorderSide(color: Colors.grey, width: 0.5), // Adding a very thin light grey border
-                                        ),
-                                        enabledBorder: OutlineInputBorder( // Add an enabled border for a slight outline
                                           borderRadius: BorderRadius.circular(15),
-                                          borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 0.5), // Very light grey border
+                                          borderSide: const BorderSide(color: Colors.grey, width: 0.5),
                                         ),
-                                        focusedBorder: OutlineInputBorder( // Focus border to match the theme
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(15),
+                                          borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
                                           borderRadius: BorderRadius.circular(15),
                                           borderSide: BorderSide(color: primaryBlue, width: 1),
                                         ),
                                         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                                       ),
                                     ),
-                                    const SizedBox(height: 20), // Spacing between fields
+                                    const SizedBox(height: 20),
 
-                                    // Password Text Field
                                     TextField(
                                       obscureText: _obscurePassword,
                                       decoration: InputDecoration(
@@ -175,8 +171,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                           borderSide: BorderSide(color: primaryBlue, width: 1),
                                         ),
                                         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-
-                                        // 👁️ Add the visibility toggle icon
                                         suffixIcon: IconButton(
                                           icon: Icon(
                                             _obscurePassword ? Icons.visibility_off : Icons.visibility,
@@ -190,19 +184,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(height: 10), // Spacing before forgot password
+                                    const SizedBox(height: 10),
 
 
                                                                           Align(
                                                                             alignment: Alignment.centerRight,
                                                                             child: TextButton(
                                                                               onPressed: () {
-                                                                                // TODO: Implement forgot password logic
+
                                                                               },
                                                                               child: Text(
                                                                                 'Forgot Password?',
                                                                                 style: TextStyle(
-                                                                                  color: primaryBlue, // Medium blue for links
+                                                                                  color: primaryBlue,
                                                                                   fontWeight: FontWeight.w600,
                                                                                 ),
                                                                               ),
@@ -210,24 +204,24 @@ class _LoginScreenState extends State<LoginScreen> {
                                                                           ),
 
 
-                                    const SizedBox(height: 20), // Spacing before Remember Me/Sign In row
+                                    const SizedBox(height: 20),
 
                                     Row(
                                       children: [
-                                        // Remember Me Checkbox
+
                                         SizedBox(
-                                          width: 24, // Constrain checkbox size
+                                          width: 24,
                                           height: 24,
                                           child: Checkbox(
-                                            value: _rememberMe, // Current state of the checkbox
+                                            value: _rememberMe,
                                             onChanged: (bool? value) {
                                               setState(() {
-                                                _rememberMe = value ?? false; // Update state
+                                                _rememberMe = value ?? false;
                                               });
                                             },
-                                            activeColor: primaryBlue, // Color when checked
+                                            activeColor: primaryBlue,
                                             shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(5), // Rounded corners for checkbox
+                                              borderRadius: BorderRadius.circular(5),
                                             ),
                                           ),
                                         ),
@@ -236,23 +230,21 @@ class _LoginScreenState extends State<LoginScreen> {
                                           'Remember Me',
                                           style: TextStyle(color: Colors.grey[700]),
                                         ),
-                                        const Spacer(), // Pushes Sign In button to the right
+                                        const Spacer(),
 
-                                        // Sign In Button with Gradient
                                         Expanded(
-                                          // Takes available space next to the checkbox
                                           child: Container(
-                                            height: 50, // Fixed height for the button
+                                            height: 50,
                                             decoration: BoxDecoration(
                                               gradient: LinearGradient(
-                                                colors: [primaryPurpleBlue, primaryTeal], // Gradient as requested
+                                                colors: [primaryPurpleBlue, primaryTeal],
                                                 begin: Alignment.topLeft,
                                                 end: Alignment.bottomRight,
                                               ),
-                                              borderRadius: BorderRadius.circular(15), // Rounded corners
+                                              borderRadius: BorderRadius.circular(15),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: primaryPurpleBlue.withOpacity(0.3), // Subtle shadow for button
+                                                  color: primaryPurpleBlue.withOpacity(0.3),
                                                   spreadRadius: 2,
                                                   blurRadius: 5,
                                                   offset: const Offset(0, 3),
@@ -267,7 +259,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                 PageRouteBuilder(
                                                 pageBuilder: (context, animation, secondaryAnimation) => BooksHomeScreen(),
                                                 transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                                const begin = Offset(1.0, 0.0); // Slide from right
+                                                const begin = Offset(1.0, 0.0);
                                                 const end = Offset.zero;
                                                 const curve = Curves.ease;
 
@@ -286,9 +278,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                               shape: RoundedRectangleBorder(
                                                 borderRadius: BorderRadius.circular(15),
                                               ),
-                                              padding: EdgeInsets.zero, // Remove default MaterialButton padding
+                                              padding: EdgeInsets.zero,
                                               child: Ink(
-                                                // Ink widget for a consistent gradient background for the touch ripple
                                                 decoration: BoxDecoration(
                                                   gradient: LinearGradient(
                                                     colors: [primaryPurpleBlue, primaryTeal],
@@ -302,7 +293,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                   child: const Text(
                                                     'Sign In',
                                                     style: TextStyle(
-                                                      color: Colors.white, // White text for button
+                                                      color: Colors.white,
                                                       fontSize: 18,
                                                       fontWeight: FontWeight.bold,
                                                     ),
@@ -335,58 +326,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     const SizedBox(height: 30),
 
-                                    // Social Login Buttons
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        // Phone Icon Button (Replaces Google)
-                                        Container(
-                                          width: 60,
-                                          height: 60,
-                                          decoration: BoxDecoration(
-                                            color: Colors.white, // White background
-                                            shape: BoxShape.circle, // Circular shape
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.grey.withOpacity(0.1), // Subtle shadow
-                                                spreadRadius: 2,
-                                                blurRadius: 5,
-                                                offset: const Offset(0, 3),
-                                              ),
-                                            ],
-                                          ),
-                                          child: IconButton(
-                                            icon: const Icon(
-                                              Icons.phone_android, // Changed to phone icon as per image 2
-                                              size: 35,
-                                              color: Colors.black, // Or a dark grey
-                                            ),
-                                            onPressed: () {
-                                             /* Navigator.pushReplacement(
-                                                context,
-                                                PageRouteBuilder(
-                                                  pageBuilder: (context, animation, secondaryAnimation) => BooksHomeScreen(),
-                                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                                    const begin = Offset(1.0, 0.0); // Slide from right
-                                                    const end = Offset.zero;
-                                                    const curve = Curves.ease;
-
-                                                    final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                                                    final offsetAnimation = animation.drive(tween);
-
-                                                    return SlideTransition(
-                                                      position: offsetAnimation,
-                                                      child: child,
-                                                    );
-                                                  },
-                                                ),
-                                              );*/
-                                            },
-                                          ),
-                                        ),
-                                        const SizedBox(width: 30),
-
-                                        // Apple Button
                                         Container(
                                           width: 60,
                                           height: 60,
@@ -404,19 +346,46 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ),
                                           child: IconButton(
                                             icon: const Icon(
-                                              Icons.apple, // Apple icon is available in Material Icons
+                                              Icons.phone_android,
                                               size: 35,
                                               color: Colors.black,
                                             ),
                                             onPressed: () {
-                                              // TODO: Implement Apple login
+
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 30),
+
+                                        Container(
+                                          width: 60,
+                                          height: 60,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.grey.withOpacity(0.1),
+                                                spreadRadius: 2,
+                                                blurRadius: 5,
+                                                offset: const Offset(0, 3),
+                                              ),
+                                            ],
+                                          ),
+                                          child: IconButton(
+                                            icon: const Icon(
+                                              Icons.apple,
+                                              size: 35,
+                                              color: Colors.black,
+                                            ),
+                                            onPressed: () {
+
                                             },
                                           ),
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 20), // Bottom padding for scrolling
-                                    // Forgot Password Link
+                                    const SizedBox(height: 20),
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children:[
@@ -433,7 +402,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                               PageRouteBuilder(
                                                 pageBuilder: (context, animation, secondaryAnimation) => SignupScreen(),
                                                 transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                                  const begin = Offset(1.0, 0.0); // Slide from right
+                                                  const begin = Offset(1.0, 0.0);
                                                   const end = Offset.zero;
                                                   const curve = Curves.ease;
 
@@ -451,7 +420,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           child: Text(
                                             'Sign Up',
                                             style: TextStyle(
-                                              color: primaryBlue, // Medium blue for links
+                                              color: primaryBlue,
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),

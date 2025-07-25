@@ -193,13 +193,11 @@ Widget buildCustomDrawerHeader(BuildContext context) {
         width: double.infinity,
         decoration: const BoxDecoration(
           borderRadius: BorderRadius.only(
-           // bottomLeft: Radius.circular(40),
             bottomRight: Radius.circular(200),
           ),
         ),
         child: ClipRRect(
           borderRadius: const BorderRadius.only(
-          //  bottomLeft: Radius.circular(40),
             bottomRight: Radius.circular(200),
           ),
           child: flutter.Image.asset(
@@ -271,7 +269,7 @@ Widget buildCustomDrawerHeader(BuildContext context) {
               PageRouteBuilder(
                 pageBuilder: (context, animation, secondaryAnimation) => LoginScreen(),
                 transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  const begin = Offset(1.0, 0.0); // Slide from right
+                  const begin = Offset(1.0, 0.0);
                   const end = Offset.zero;
                   const curve = Curves.ease;
 

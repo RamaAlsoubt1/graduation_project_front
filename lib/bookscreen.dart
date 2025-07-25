@@ -32,8 +32,8 @@ class _BookScreenState extends State<BookScreen> {
 
   String cleanText(String text) {
     return text
-        .replaceAll(RegExp(r'\n\s*\n'), '\n') // Remove empty lines
-        .replaceAll(RegExp(r'\s+'), ' ')      // Remove extra spaces
+        .replaceAll(RegExp(r'\n\s*\n'), '\n')
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
 

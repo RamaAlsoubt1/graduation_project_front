@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:file_selector/file_selector.dart';  // your plugin
+import 'package:file_selector/file_selector.dart';
 import 'package:epubx/epubx.dart';
 
 class BooksHomeScreen extends StatefulWidget {
@@ -22,7 +22,6 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> {
       _error = null;
     });
 
-    // Pick an epub file using file_selector
     final XTypeGroup typeGroup = XTypeGroup(
       label: 'EPUB',
       extensions: ['epub'],

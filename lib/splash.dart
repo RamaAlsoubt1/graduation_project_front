@@ -34,7 +34,7 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // Logo animation setup
+
     _logoController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -47,7 +47,6 @@ class _SplashScreenState extends State<SplashScreen>
 
     _logoController.forward();
 
-    // Auto-navigate after 3.5 seconds
     Timer(const Duration(milliseconds: 3500), () {
       Navigator.of(context).pushReplacement(_createFadeRoute());
     });
@@ -70,8 +69,8 @@ class _SplashScreenState extends State<SplashScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF7BD5F5), // light blue
-              Color(0xFF1F2F98), // deep blue
+              Color(0xFF7BD5F5),
+              Color(0xFF1F2F98),
             ],
           ),
         ),
@@ -81,7 +80,6 @@ class _SplashScreenState extends State<SplashScreen>
             child: ScaleTransition(
               scale: _logoAnimation,
               child: Column(
-                //mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [

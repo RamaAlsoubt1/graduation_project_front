@@ -4,16 +4,13 @@ import 'package:flutter/material.dart';
 import 'gragh.dart';
 
 class AnalysisScreen extends StatelessWidget {
-  //final String bookContent;
 
   const AnalysisScreen({Key? key,
-   // required this.bookContent
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // For now, just simulate with placeholder text
-    final hasAnalysis = false; // or true if you have analysis
+    final hasAnalysis = false;
 
     return Scaffold(
       appBar: AppBar(
@@ -36,8 +33,8 @@ class AnalysisScreen extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xFF7BD5F5), // light blue
-                Color(0xFF1F2F98), // deep blue
+                Color(0xFF7BD5F5),
+                Color(0xFF1F2F98),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -47,7 +44,7 @@ class AnalysisScreen extends StatelessWidget {
       ),
       body: Center(
         child: hasAnalysis
-            ? Text("Here is your analysis ...") // Replace with real data later
+            ? Text("Here is your analysis ...")
             : Text("No analyses available."),
       ),
     );

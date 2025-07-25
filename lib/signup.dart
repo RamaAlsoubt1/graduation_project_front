@@ -18,7 +18,6 @@ final Color primaryBlue = hexToColor('#1CA7CE');    // Medium blue
 final Color primaryDarkBlue = hexToColor('#1F2F98');  // Dark blue
 
 
-
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -28,22 +27,39 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   bool _obscurePassword = true;
+  bool _obscurePassword1 = true;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
   Future<void> registerUser() async {
-    final username = _usernameController.text;
-    final email = _emailController.text;
+    final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
     final password = _passwordController.text;
     final repeatPassword = _repeatPasswordController.text;
+
+    if (username.isEmpty || email.isEmpty || password.isEmpty || repeatPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("⚠️ All fields are required")));
+      return;
+    }
+
+    if (username.length < 4) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("⚠️ Username must be at least 4 characters")));
+      return;
+    }
+
+    if (password.length < 7) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("⚠️ Password must be at least 7 characters")));
+      return;
+    }
 
     if (password != repeatPassword) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("⚠️ Passwords do not match")));
       return;
     }
-    print('1');
-    final url = Uri.parse("http://192.168.1.5:80/api/v1/register/");
-    print('2');
+   // 192.168.178.99
+    final url = Uri.parse("http://192.168.178.99:80/api/v1/register/");
+//http://10.0.2.2:80/api/v1/register/
     try {
       final response = await http.post(
         url,
@@ -56,10 +72,11 @@ class _SignupScreenState extends State<SignupScreen> {
       );
 
       final data = jsonDecode(response.body);
-      if (response.statusCode == 200 && data['status'] == 'success') {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => OtpScreen()));
+      print(data);
+      if (response.statusCode == 201 && data['status'] == 'success') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) =>  OtpScreen(email: email),));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['ar'] ?? "Registration failed")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['en'] ?? "Registration failed")));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
@@ -172,16 +189,16 @@ class _SignupScreenState extends State<SignupScreen> {
                                       labelStyle: TextStyle(color: Colors.grey[700]),
                                       hintStyle: TextStyle(color: Colors.grey[400]),
                                       filled: true,
-                                      fillColor: Colors.white, // Changed to pure white as per image 2
+                                      fillColor: Colors.white,
                                       border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(15), // Rounded corners for input
-                                        borderSide: const BorderSide(color: Colors.grey, width: 0.5), // Adding a very thin light grey border
-                                      ),
-                                      enabledBorder: OutlineInputBorder( // Add an enabled border for a slight outline
                                         borderRadius: BorderRadius.circular(15),
-                                        borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 0.5), // Very light grey border
+                                        borderSide: const BorderSide(color: Colors.grey, width: 0.5),
                                       ),
-                                      focusedBorder: OutlineInputBorder( // Focus border to match the theme
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                        borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(15),
                                         borderSide: BorderSide(color: primaryBlue, width: 1),
                                       ),
@@ -189,7 +206,6 @@ class _SignupScreenState extends State<SignupScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 20),
-                                  // Username Text Field
                                   TextField(
                                     controller: _emailController,
                                     decoration: InputDecoration(
@@ -198,16 +214,16 @@ class _SignupScreenState extends State<SignupScreen> {
                                       labelStyle: TextStyle(color: Colors.grey[700]),
                                       hintStyle: TextStyle(color: Colors.grey[400]),
                                       filled: true,
-                                      fillColor: Colors.white, // Changed to pure white as per image 2
+                                      fillColor: Colors.white,
                                       border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(15), // Rounded corners for input
-                                        borderSide: const BorderSide(color: Colors.grey, width: 0.5), // Adding a very thin light grey border
-                                      ),
-                                      enabledBorder: OutlineInputBorder( // Add an enabled border for a slight outline
                                         borderRadius: BorderRadius.circular(15),
-                                        borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 0.5), // Very light grey border
+                                        borderSide: const BorderSide(color: Colors.grey, width: 0.5),
                                       ),
-                                      focusedBorder: OutlineInputBorder( // Focus border to match the theme
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                        borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(15),
                                         borderSide: BorderSide(color: primaryBlue, width: 1),
                                       ),
@@ -238,7 +254,6 @@ class _SignupScreenState extends State<SignupScreen> {
                                       ),
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
 
-                                      // 👁️ Add the visibility toggle icon
                                       suffixIcon: IconButton(
                                         icon: Icon(
                                           _obscurePassword ? Icons.visibility_off : Icons.visibility,
@@ -255,7 +270,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                   const SizedBox(height: 20),
                                   TextField(
                                     controller: _repeatPasswordController,
-                                    obscureText: _obscurePassword,
+                                    obscureText: _obscurePassword1,
                                     decoration: InputDecoration(
                                       labelText: 'Repeat Password',
                                       labelStyle: TextStyle(color: Colors.grey[700]),
@@ -276,15 +291,14 @@ class _SignupScreenState extends State<SignupScreen> {
                                       ),
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
 
-                                      // 👁️ Add the visibility toggle icon
                                       suffixIcon: IconButton(
                                         icon: Icon(
-                                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                          _obscurePassword1 ? Icons.visibility_off : Icons.visibility,
                                           color: Colors.grey[600],
                                         ),
                                         onPressed: () {
                                           setState(() {
-                                            _obscurePassword = !_obscurePassword;
+                                            _obscurePassword1 = !_obscurePassword1;
                                           });
                                         },
                                       ),
@@ -353,7 +367,6 @@ class _SignupScreenState extends State<SignupScreen> {
                                   ),
                                   const SizedBox(height: 20),
 
-                                  // Forgot Password Link
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children:[
@@ -370,7 +383,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                               PageRouteBuilder(
                                                 pageBuilder: (context, animation, secondaryAnimation) => LoginScreen(),
                                                 transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                                  const begin = Offset(1.0, 0.0); // Slide from right
+                                                  const begin = Offset(1.0, 0.0);
                                                   const end = Offset.zero;
                                                   const curve = Curves.ease;
 
@@ -389,7 +402,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                           child: Text(
                                             'Log In',
                                             style: TextStyle(
-                                              color: primaryBlue, // Medium blue for links
+                                              color: primaryBlue,
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
