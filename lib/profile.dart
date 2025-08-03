@@ -1,20 +1,107 @@
+import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'gragh.dart';
+import 'login.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({Key? key}) : super(key: key);
 
-  const ProfileScreen({Key? key,
-  }) : super(key: key);
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String? username;
+  String? email;
+  final profileurl=Uri.parse("http://10.161.240.99:80/api/v1/profile/");
+  final refreshtokenurl=Uri.parse("http://10.161.240.99:80/api/v1/refresh/");
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProfileData();
+  }
+
+  Future<void> fetchProfileData() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('access_token');
+    final refreshToken = prefs.getString('refresh_token');
+
+    if (token == null || refreshToken == null) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => LoginScreen()),
+            (route) => false,
+      );
+      return;
+    }
+
+    Future<bool> tryFetch(String tokenToUse) async {
+      final response = await http.get(
+        profileurl,
+        headers: {'Authorization': 'Bearer $tokenToUse'},
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        print('response data: $jsonData');
+        setState(() {
+          email = jsonData['data']['email'];
+          username = jsonData['data']['username'];
+        });
+        return true;
+      }
+
+      return false;
+    }
+
+    // المحاولة الأولى بالتوكن الحالي
+    final success = await tryFetch(token);
+    if (success) {
+      print ('first try with exist token ');
+      return;
+    }
+
+    // فشل التوكن، جرب التحديث بالريفرش
+    final refreshResponse = await http.post(
+      refreshtokenurl,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'refresh': refreshToken}),
+    );
+
+    if (refreshResponse.statusCode == 200) {
+      final refreshData = jsonDecode(refreshResponse.body);
+      print("refreshData $refreshData");
+      final newToken = refreshData['access'];
+
+      final retrySuccess = await tryFetch(newToken);
+      if (retrySuccess) {
+        print("new access token by refresh ");
+        await prefs.setString('access_token', newToken);
+        return;
+      }
+    }
+    print("nothing work return to login ");
+    await prefs.remove('access_token');
+    await prefs.remove('refresh_token');
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => LoginScreen()),
+      (Route<dynamic> route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final hasAnalysis = false;
+    //final hasAnalysis = false;
     final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       body:  Container(
-        color: Color(0xFF0D99C9).withOpacity(0.2),
+        //color: Color(0xFF0D99C9).withOpacity(0.2),
+        color: Colors.white,
         child: Column(
             children: [
               Container(
@@ -98,8 +185,8 @@ class ProfileScreen extends StatelessWidget {
                           ],
                         ),
                         SizedBox(height: 3,),
-                        const Text(
-                          'Rama Alsoubt',
+                        Text(
+                          username ?? '',
                           style: TextStyle(
                             fontSize: 18,
 
@@ -157,8 +244,8 @@ class ProfileScreen extends StatelessWidget {
                           ],
                         ),
                         SizedBox(height: 3,),
-                        const Text(
-                          'Ramabook2025@gmail.com',
+                         Text(
+                           email ?? '',
                           style: TextStyle(
                             fontSize: 18,
 

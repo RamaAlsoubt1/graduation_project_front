@@ -58,8 +58,8 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
    // 192.168.178.99
-    final url = Uri.parse("http://192.168.178.99:80/api/v1/register/");
-//http://10.0.2.2:80/api/v1/register/
+    final url = Uri.parse("http://10.161.240.99:80/api/v1/register/");
+   //for emulater // http://10.0.2.2:80/api/v1/register/
     try {
       final response = await http.post(
         url,
@@ -74,7 +74,7 @@ class _SignupScreenState extends State<SignupScreen> {
       final data = jsonDecode(response.body);
       print(data);
       if (response.statusCode == 201 && data['status'] == 'success') {
-        Navigator.push(context, MaterialPageRoute(builder: (_) =>  OtpScreen(email: email),));
+        Navigator.push(context, MaterialPageRoute(builder: (_) =>  OtpScreen(email: email, isFromForgotPassword: false),));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['en'] ?? "Registration failed")));
       }
@@ -378,7 +378,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                         alignment: Alignment.centerLeft,
                                         child: TextButton(
                                           onPressed: () {
-                                            Navigator.push(
+                                            Navigator.pushAndRemoveUntil(
                                               context,
                                               PageRouteBuilder(
                                                 pageBuilder: (context, animation, secondaryAnimation) => LoginScreen(),
@@ -396,6 +396,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                                   );
                                                 },
                                               ),
+                                                  (Route<dynamic> route) => false,
                                             );
                                           },
 

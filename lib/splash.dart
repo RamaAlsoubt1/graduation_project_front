@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
+import 'home.dart';
 import 'login.dart';
 
 class SplashScreen extends StatefulWidget {
+
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -13,10 +15,10 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _logoController;
   late Animation<double> _logoAnimation;
 
-  Route _createFadeRoute() {
+  Route _createFadeRoute(Widget targetScreen) {
     return PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 800),
-      pageBuilder: (context, animation, secondaryAnimation) => const LoginScreen(),
+      pageBuilder: (context, animation, secondaryAnimation) => targetScreen,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final curvedAnimation = CurvedAnimation(
           parent: animation,
@@ -34,7 +36,6 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-
     _logoController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -47,11 +48,27 @@ class _SplashScreenState extends State<SplashScreen>
 
     _logoController.forward();
 
-    Timer(const Duration(milliseconds: 3500), () {
-      Navigator.of(context).pushReplacement(_createFadeRoute());
+    Timer(const Duration(milliseconds: 3500), () async {
+      final prefs = await SharedPreferences.getInstance();
+      final rememberMe = prefs.getBool('rememberMe') ?? false;
+      final access_token = prefs.getString('access_token');
+      final refresh_token = prefs.getString('refresh_token');
+
+      final allPrefs = prefs.getKeys();
+
+      print('--- Shared Preferences Contents ---');
+      for (var key in allPrefs) {
+        print('$key: ${prefs.get(key)}');
+      }
+      print('------------------------------------');
+
+      if (rememberMe && access_token != null && access_token.isNotEmpty) {
+        Navigator.of(context).pushReplacement(_createFadeRoute(BooksHomeScreen()));
+      } else {
+        Navigator.of(context).pushReplacement(_createFadeRoute(LoginScreen()));
+      }
     });
   }
-
   @override
   void dispose() {
     _logoController.dispose();

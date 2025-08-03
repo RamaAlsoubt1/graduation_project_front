@@ -6,6 +6,7 @@ import 'package:newno/profile.dart';
 import 'package:path/path.dart' as path;
 import 'package:epubx/epubx.dart';
 import 'package:image/image.dart' as img;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'bookscreen.dart';
 import 'library.dart';
 import 'package:flutter/material.dart' as flutter;
@@ -55,7 +56,7 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
 
     return buffer.toString();
   }
-  Future<void> _pickAndOpenBook() async {
+  /*Future<void> _pickAndOpenBook() async {
     const typeGroup = XTypeGroup(
       label: 'books',
       extensions: [ 'epub', 'txt'],
@@ -101,7 +102,122 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
         ),
       );
     }
+  }*/
+
+  Future<void> showUploadDialog(BuildContext context, String suggestedTitle) async {
+    final titleController = TextEditingController(text: suggestedTitle);
+    bool allowReview = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false, // لازم يختار OK أو Cancel
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('Book Upload'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Respecting your privacy, do you allow review of your book for public library addition if appropriate?'),
+              SizedBox(height: 12),
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: 'Book Title',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  Checkbox(
+                    value: allowReview,
+                    onChanged: (val) {
+                      setState(() {
+                        allowReview = val ?? false;
+                      });
+                    },
+                  ),
+                  Flexible(child: Text('I allow my book to be reviewed and added publicly'))
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                print('Title: ${titleController.text}');
+                print('Allow review: $allowReview');
+                Navigator.of(context).pop();
+              },
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
+
+
+  Future<void> _pickAndOpenBook() async {
+    const typeGroup = XTypeGroup(
+      label: 'books',
+      extensions: ['epub', 'txt'],
+    );
+
+    final file = await openFile(acceptedTypeGroups: [typeGroup]);
+    if (file == null) return;
+
+    // نستخدم basename بدون امتداد كعنوان مقترح
+    final suggestedTitle = path.basenameWithoutExtension(file.path);
+
+    // نعرض dialog لإدخال العنوان والسماح بالمراجعة
+    await showUploadDialog(context, suggestedTitle);
+
+    // هنا تقدر تأخذ القيم من showUploadDialog لو عدلتها لإرجاع القيم
+
+    final ext = path.extension(file.path).toLowerCase();
+
+    String content = '';
+
+    if (ext == '.txt') {
+      content = await File(file.path).readAsString();
+    } else if (ext == '.epub') {
+      final epubBytes = await File(file.path).readAsBytes();
+      final book = await EpubReader.readBook(epubBytes);
+
+      final chapters = book.Chapters;
+
+      if (chapters != null && chapters.isNotEmpty) {
+        content = gatherChapterText(chapters);
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This file type is not supported')),
+      );
+      return;
+    }
+
+    if (content.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('The file is empty and contains no content')),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BookScreen(
+          content: content,
+          fileName: path.basename(file.path),
+        ),
+      ),
+    );
+  }
+
 
 
   @override
@@ -110,7 +226,8 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
       key: _scaffoldKey,
       drawer:Drawer(
         child: Container(
-          color: Color(0xFF0D99C9).withOpacity(0.2),
+         // color: Color(0xFF0D99C9).withOpacity(0.2),
+          color: Colors.white,
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
@@ -255,6 +372,7 @@ Widget buildCustomDrawerHeader(BuildContext context) {
       ),
 
       SizedBox(height: 20,),
+
       Padding(
         padding: const EdgeInsets.only(right: 20.0),
         child: InkWell(
@@ -262,28 +380,48 @@ Widget buildCustomDrawerHeader(BuildContext context) {
             bottomRight: Radius.circular(100),
             topRight: Radius.circular(10),
           ),
-          onTap: () {
+          onTap: () async {
+            Navigator.of(context).pop();
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.remove('access_token');
+            await prefs.remove('refresh_token');
+            await prefs.remove('rememberMe');
+            await prefs.remove('user_email');
+            await prefs.remove('user_uuid');
+            await prefs.remove('user_role');
+            await prefs.remove('remembered_email');
 
-            Navigator.pushReplacement(
+            print('--- SharedPreferences after logout ---');
+            prefs.getKeys().forEach((key) {
+              print('$key: ${prefs.get(key)}');
+            });
+            print('-----------------------------------------');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Logged out successfully'),
+                duration: Duration(seconds: 1),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: Colors.black,
+              ),
+            );
+
+            await Future.delayed(Duration(milliseconds: 1300));
+
+            Navigator.pushAndRemoveUntil(
               context,
               PageRouteBuilder(
                 pageBuilder: (context, animation, secondaryAnimation) => LoginScreen(),
                 transitionsBuilder: (context, animation, secondaryAnimation, child) {
                   const begin = Offset(1.0, 0.0);
                   const end = Offset.zero;
-                  const curve = Curves.ease;
-
+                  const curve = Curves.easeInOut;
                   final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
                   final offsetAnimation = animation.drive(tween);
-
-                  return SlideTransition(
-                    position: offsetAnimation,
-                    child: child,
-                  );
+                  return SlideTransition(position: offsetAnimation, child: child);
                 },
               ),
+                  (Route<dynamic> route) => false,
             );
-
           },
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:newno/login.dart';
+import 'package:newno/signup.dart';
 import 'package:newno/splash.dart';
 
 import 'gragh.dart';

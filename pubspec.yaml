@@ -42,6 +42,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   graphview: ^1.1.5
   graphx: ^1.0.5
+  shared_preferences: ^2.5.3
 
 
 dev_dependencies:

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:newno/library.dart';
 import 'home.dart';
+import 'otp.dart';
 import 'signup.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 Color hexToColor(String hexString) {
   final buffer = StringBuffer();
@@ -17,7 +21,6 @@ final Color primaryBlue = hexToColor('#1CA7CE');    // Medium blue
 final Color primaryDarkBlue = hexToColor('#1F2F98');  // Dark blue
 
 
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -28,6 +31,11 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = false;
   bool _obscurePassword = true;
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final url = Uri.parse("http://10.161.240.99:80/api/v1/login/");
+  final reqpassurl = Uri.parse("http://10.161.240.99:80/api/v1/password-reset-request/");
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -116,9 +124,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ],
                               ),
                             width: double.infinity,
-                        height: double.infinity,
-                        child:  SingleChildScrollView(
-                          child: Padding(
+                            height: double.infinity,
+                            child:  SingleChildScrollView(
+                            child: Padding(
                               padding: const EdgeInsets.all( 25.0),
                               child: Container(
                                 width: double.infinity,
@@ -126,6 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     TextField(
+                                      controller: _emailController,
                                       decoration: InputDecoration(
                                         labelText: 'Email',
                                         hintText: 'Enter your email',
@@ -148,9 +157,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                                       ),
                                     ),
+
                                     const SizedBox(height: 20),
 
                                     TextField(
+                                      controller: _passwordController,
                                       obscureText: _obscurePassword,
                                       decoration: InputDecoration(
                                         labelText: 'Password',
@@ -186,29 +197,67 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     const SizedBox(height: 10),
 
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: TextButton(
+                                        onPressed: () async {
+                                          final email = _emailController.text.trim();
+                                          if (email.isEmpty) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Please enter your email')),
+                                            );
+                                            return;
+                                          }
 
-                                                                          Align(
-                                                                            alignment: Alignment.centerRight,
-                                                                            child: TextButton(
-                                                                              onPressed: () {
+                                          try {
+                                            final response = await http.post(
+                                              reqpassurl,
+                                              headers: {'Content-Type': 'application/json'},
+                                              body: jsonEncode({'email': email}),
+                                            );
 
-                                                                              },
-                                                                              child: Text(
-                                                                                'Forgot Password?',
-                                                                                style: TextStyle(
-                                                                                  color: primaryBlue,
-                                                                                  fontWeight: FontWeight.w600,
-                                                                                ),
-                                                                              ),
-                                                                            ),
-                                                                          ),
-
+                                            final data = jsonDecode(response.body);
+                                            print(data);
+                                            if (response.statusCode == 200 && data['status'] == 'success') {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => OtpScreen(email: email, isFromForgotPassword: true),
+                                                ),
+                                              );
+                                            } else if (response.statusCode == 400) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text(data['en'] ?? 'Invalid email')),
+                                              );
+                                            } else if (response.statusCode >= 500) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('Server error, please try again later')),
+                                              );
+                                            } else {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('Unexpected error, please try again')),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Network error, please try again')),
+                                            );
+                                          }
+                                        },
+                                        child: Text(
+                                          'Forgot Password ?',
+                                          style: TextStyle(
+                                            color: primaryBlue,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
 
                                     const SizedBox(height: 20),
 
                                     Row(
                                       children: [
-
                                         SizedBox(
                                           width: 24,
                                           height: 24,
@@ -230,6 +279,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           'Remember Me',
                                           style: TextStyle(color: Colors.grey[700]),
                                         ),
+
                                         const Spacer(),
 
                                         Expanded(
@@ -252,30 +302,96 @@ class _LoginScreenState extends State<LoginScreen> {
                                               ],
                                             ),
                                             child: MaterialButton(
-                                              onPressed: () {
+                                                onPressed: () async {
+                                                  final email = _emailController.text.trim();
+                                                  final password = _passwordController.text;
 
-                                                Navigator.pushReplacement(
-                                                context,
-                                                PageRouteBuilder(
-                                                pageBuilder: (context, animation, secondaryAnimation) => BooksHomeScreen(),
-                                                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                                const begin = Offset(1.0, 0.0);
-                                                const end = Offset.zero;
-                                                const curve = Curves.ease;
+                                                  if (email.isEmpty || password.isEmpty) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(content: Text('Please enter both email and password')),
+                                                    );
+                                                    return;
+                                                  }
 
-                                                final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                                                final offsetAnimation = animation.drive(tween);
+                                                  try {
+                                                    final response = await http.post(
+                                                      url,
+                                                      headers: {'Content-Type': 'application/json'},
+                                                      body: jsonEncode({'email': email, 'password': password}),
+                                                    );
 
-                                                return SlideTransition(
-                                                position: offsetAnimation,
-                                                child: child,
-                                                );
+                                                    if (response.statusCode == 200) {
+                                                      final data = jsonDecode(response.body);
+                                                      print('response data: $data');
+                                                      final access = data['access'];
+                                                      final refresh = data['refresh'];
+                                                      final user = data['user'];
+
+                                                      final prefs = await SharedPreferences.getInstance();
+                                                      await prefs.setString('access_token', access);
+                                                      await prefs.setString('refresh_token', refresh);
+                                                      await prefs.setString('user_email', user['email']);
+                                                      await prefs.setString('user_role', user['role']);
+                                                      await prefs.setString('user_uuid', user['uuid']);
+
+                                                      if (_rememberMe) {
+                                                        await prefs.setString('remembered_email', email);
+                                                      }
+                                                      else {
+                                                        await prefs.remove('remembered_email');
+                                                      }
+                                                      await prefs.setBool('rememberMe', _rememberMe);
+
+                                                      print('*********shared prefrence **************\n');
+                                                      print('Access Token: ${prefs.getString('access_token')}');
+                                                      print('Refresh Token: ${prefs.getString('refresh_token')}');
+                                                      print('User Email: ${prefs.getString('user_email')}');
+                                                      print('User Role: ${prefs.getString('user_role')}');
+                                                      print('User UUID: ${prefs.getString('user_uuid')}');
+                                                      print('Remembered Email: ${prefs.getString('remembered_email')}');
+                                                      print('Remember Me: ${prefs.getBool('rememberMe')}');
+                                                      print('***********************\n');
+
+                                                      Navigator.pushAndRemoveUntil(
+                                                        context,
+                                                        PageRouteBuilder(
+                                                          pageBuilder: (context, animation, secondaryAnimation) => BooksHomeScreen(),
+                                                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                                            final tween = Tween(begin: Offset(1.0, 0.0), end: Offset.zero)
+                                                                .chain(CurveTween(curve: Curves.ease));
+                                                            final offsetAnimation = animation.drive(tween);
+                                                            return SlideTransition(position: offsetAnimation, child: child);
+                                                          },
+                                                        ),
+                                                            (Route<dynamic> route) => false,
+                                                      );
+                                                    }
+                                                    else if (response.statusCode == 400) {
+                                                      final data = jsonDecode(response.body);
+                                                      print(data);
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                          SnackBar(content: Text(data['en'] ?? 'Invalid credentials')),
+                                                      );
+                                                    }
+                                                    else if (response.statusCode == 500) {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(content: Text('Server error, please try again later')),
+                                                      );
+                                                    } else {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(content: Text('Unexpected error')),
+                                                      );
+                                                    }
+                                                  }
+                                                  catch (e, stackTrace) {
+                                                    print('Error caught: $e');
+                                                    print('Stack trace: $stackTrace');
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(content: Text('Network error')),
+                                                    );
+                                                  }
                                                 },
-                                                ),
-                                                );
-
-                                              },
-                                              shape: RoundedRectangleBorder(
+                                                shape: RoundedRectangleBorder(
                                                 borderRadius: BorderRadius.circular(15),
                                               ),
                                               padding: EdgeInsets.zero,
@@ -305,6 +421,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                       ],
                                     ),
+
                                     const SizedBox(height: 30),
 
                                     // "Or" Divider
@@ -324,9 +441,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ],
                                       ),
                                     ),
+
                                     const SizedBox(height: 30),
 
-                                    Row(
+                               /*     Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Container(
@@ -384,8 +502,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ),
                                         ),
                                       ],
-                                    ),
+                                    ),*/
+
                                     const SizedBox(height: 20),
+
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children:[
@@ -415,6 +535,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                   );
                                                 },
                                               ),
+                                                  //(Route<dynamic> route) => false,
                                             );
                                           },
                                           child: Text(
@@ -432,7 +553,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                         ),
-    ),),
+                            ),),
 
                         ], ),
                     ),
