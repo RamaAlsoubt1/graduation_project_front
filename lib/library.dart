@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:epubx/epubx.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
+import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -308,12 +310,13 @@ class _LibraryScreenState extends State<LibraryScreen> with AutomaticKeepAliveCl
 */
 
 class LibraryScreen extends StatefulWidget {
+  const LibraryScreen({Key? key}) : super(key: key);
   @override
-  _LibraryScreenState createState() => _LibraryScreenState();
-  bool get wantKeepAlive => true;
+  LibraryScreenState createState() => LibraryScreenState();
+  //bool get wantKeepAlive => true;
 }
 
-class _LibraryScreenState extends State<LibraryScreen> with AutomaticKeepAliveClientMixin {
+class LibraryScreenState extends State<LibraryScreen>  {
   List<Map<String, String>> libraryBooks = [];
   final Map<String, double?> downloadProgress = {};
   final url=Uri.parse("http://10.161.240.99:80/api/v1/customer/store/books/");
@@ -340,7 +343,7 @@ class _LibraryScreenState extends State<LibraryScreen> with AutomaticKeepAliveCl
     if (response.statusCode == 200) {
       final decoded = json.decode(utf8.decode(response.bodyBytes));
       print("data = $decoded");
-
+      print("work without refresh");
       final books = decoded['data']['books'] as List;
       final extractedBooks = books.map<Map<String, String>>((item) {
         final book = item['book'];
@@ -597,7 +600,7 @@ class _LibraryScreenState extends State<LibraryScreen> with AutomaticKeepAliveCl
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
+   // super.build(context);
 
     return libraryBooks.isEmpty
         ? Center(child: CircularProgressIndicator())
@@ -638,7 +641,8 @@ class _LibraryScreenState extends State<LibraryScreen> with AutomaticKeepAliveCl
                   );
                 } else if (fileExists) {
                   trailingWidget = Icon(Icons.check_circle, color: Color(0xFF1F2F98));
-                } else {
+                }
+                else {
                   trailingWidget = Icon(Icons.download_rounded, color: Color(0xFF1F2F98));
                 }
 
@@ -658,3 +662,5 @@ class _LibraryScreenState extends State<LibraryScreen> with AutomaticKeepAliveCl
     );
   }
 }
+
+

@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:http/http.dart' as http;
 import 'package:newno/login.dart';
 import 'package:newno/profile.dart';
 import 'package:path/path.dart' as path;
@@ -10,6 +12,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'bookscreen.dart';
 import 'library.dart';
 import 'package:flutter/material.dart' as flutter;
+
+import 'mybooks.dart';
+
 class BooksHomeScreen extends StatefulWidget {
   @override
   _BooksHomeScreenState createState() => _BooksHomeScreenState();
@@ -19,6 +24,14 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
   late TabController _tabController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool isDrawerOpen = false;
+  final GlobalKey<MyBooksTabState> myBooksTabKey = GlobalKey<MyBooksTabState>();
+  final GlobalKey<LibraryScreenState> libraryTabKey = GlobalKey<LibraryScreenState>();
+  final uploadbookurl = Uri.parse("http://10.161.240.99:80/api/v1/customer/books/upload/");
+  final refreshtokenurl=Uri.parse("http://10.161.240.99:80/api/v1/refresh/");
+  static const String baseRequestUrl = "http://10.161.240.99:80/api/v1/customer/store/request/";
+  Uri getRequestUrl(int bookId) {
+    return Uri.parse('$baseRequestUrl$bookId/');
+  }
   @override
   void initState() {
     super.initState();
@@ -37,6 +50,22 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
   String stripHtmlTags(String htmlText) {
     final RegExp exp = RegExp(r"<[^>]*>", multiLine: true, caseSensitive: false);
     return htmlText.replaceAll(exp, '');
+  }
+
+  Future<File> pickAndSaveBookToAppFolder(XFile pickedFile) async {
+    final downloadDir = Directory('/storage/emulated/0/Download/MyAppBooks');
+
+    // إنشاء المجلد إذا غير موجود
+    if (!await downloadDir.exists()) {
+      await downloadDir.create(recursive: true);
+    }
+
+    final fileName = path.basename(pickedFile.path);
+    final newFile = File(path.join(downloadDir.path, fileName));
+
+    // نسخ الملف
+    final copied = await File(pickedFile.path).copy(newFile.path);
+    return copied;
   }
 
   String gatherChapterText(List<EpubChapter>? chapters) {
@@ -104,7 +133,13 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
     }
   }*/
 
-  Future<void> showUploadDialog(BuildContext context, String suggestedTitle) async {
+  Future<void> showUploadDialog({
+    required BuildContext context,
+    required XFile bookFile,
+    required String suggestedTitle,
+    required VoidCallback onSuccess,
+  }) async
+  {
     final titleController = TextEditingController(text: suggestedTitle);
     bool allowReview = false;
 
@@ -148,21 +183,153 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
               child: Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
-                print('Title: ${titleController.text}');
-                print('Allow review: $allowReview');
-                Navigator.of(context).pop();
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                String? accessToken = prefs.getString('access_token');
+                final refreshToken = prefs.getString('refresh_token');
+
+                if (accessToken == null || refreshToken == null) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => LoginScreen()),
+                        (route) => false,
+                  );
+                  return;
+                }
+
+                Future<http.Response> uploadBook(String token) async {
+                  final request = http.MultipartRequest('POST', uploadbookurl);
+                  request.headers['Authorization'] = 'Bearer $token';
+                  request.fields['title'] = titleController.text;
+                  request.fields['allowReview'] = allowReview ? 'true' : 'false';
+                  request.files.add(await http.MultipartFile.fromPath('file', bookFile.path));
+
+                  final streamedResponse = await request.send();
+                  return await http.Response.fromStream(streamedResponse);
+                }
+
+                Future<http.Response> sendBookRequest(String token, int bookId) async {
+                  final requestUrl = getRequestUrl(bookId);
+
+                  // دالة داخلية لإرسال الطلب
+                  Future<http.Response> makeRequest(String token) {
+                    return http.post(
+                      requestUrl,
+                      headers: {
+                        'Authorization': 'Bearer $token',
+                        'Accept': 'application/json',
+                      },
+                    );
+                  }
+
+                  http.Response response = await makeRequest(token);
+
+                  if (response.statusCode == 401) {
+                    // التوكن انتهت صلاحيته → نحتاج نستخدم refresh token
+                    final prefs = await SharedPreferences.getInstance();
+                    final refreshToken = prefs.getString('refresh_token');
+
+                    if (refreshToken == null) {
+                      throw Exception('No refresh token found.');
+                    }
+
+                    // أرسل طلب تجديد التوكن
+                    final refreshResponse = await http.post(
+                      refreshtokenurl,
+                      headers: {'Content-Type': 'application/json'},
+                      body: jsonEncode({'refresh': refreshToken}),
+                    );
+
+                    if (refreshResponse.statusCode == 200) {
+                      final newAccessToken = jsonDecode(refreshResponse.body)['access'];
+                      print("newAccessToken $newAccessToken");
+                      await prefs.setString('access_token', newAccessToken);
+
+                      // أعد المحاولة بالتوكن الجديد
+                      response = await makeRequest(newAccessToken);
+                    }
+                    else {
+                      throw Exception('Failed to refresh token');
+                    }
+                  }
+
+                  return response;
+                }
+
+
+                http.Response response = await uploadBook(accessToken);
+
+                if (response.statusCode == 401) {
+                  final refreshResponse = await http.post(
+                    refreshtokenurl,
+                    headers: {'Content-Type': 'application/json'},
+                    body: jsonEncode({'refresh': refreshToken}),
+                  );
+
+                  if (refreshResponse.statusCode == 200) {
+                    final refreshData = jsonDecode(refreshResponse.body);
+                    final newAccessToken = refreshData['access'];
+                    await prefs.setString('access_token', newAccessToken);
+                    accessToken = newAccessToken;
+
+                    response = await uploadBook(accessToken!);
+                  } else {
+                    await prefs.remove('access_token');
+                    await prefs.remove('refresh_token');
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Session expired. Please log in again.')),
+                    );
+
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => LoginScreen()),
+                          (route) => false,
+                    );
+                    return;
+                  }
+                }
+
+                if (response.statusCode == 200 || response.statusCode == 201) {
+                  final responseData = json.decode(response.body);
+                  print("Upload success response: $responseData");
+
+                  final bookId = responseData['data']['book']['id'] as int;
+
+                  // استدعاء طلب الموافقة على الكتاب
+                  final requestResponse = await sendBookRequest(accessToken!, bookId);
+                  print("Book request response: ${requestResponse.statusCode} - ${requestResponse.body}");
+
+                  if (requestResponse.statusCode == 200 || requestResponse.statusCode == 201) {
+                    final requestData = json.decode(requestResponse.body);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(requestData['en'] ?? 'Book request submitted successfully')),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to submit book request')),
+                    );
+                  }
+
+                  onSuccess(); // نعلم الشاشة تعيد تحميل الكتب
+                  Navigator.of(context).pop();
+                } else {
+                  print('Upload failed: ${response.body}');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to upload the book')),
+                  );
+                }
               },
               child: Text('OK'),
             ),
+
           ],
         ),
       ),
     );
-  }
+    }
 
-
-  Future<void> _pickAndOpenBook() async {
+  Future<void> _pickAndUploadBook() async {
     const typeGroup = XTypeGroup(
       label: 'books',
       extensions: ['epub', 'txt'],
@@ -175,17 +342,26 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
     final suggestedTitle = path.basenameWithoutExtension(file.path);
 
     // نعرض dialog لإدخال العنوان والسماح بالمراجعة
-    await showUploadDialog(context, suggestedTitle);
+    await showUploadDialog(
+      context: context,
+      bookFile: file,
+      suggestedTitle: suggestedTitle,
+      onSuccess: () {
+        myBooksTabKey.currentState?.fetchMyBooks(); // بعد نجاح الرفع
+      },
+    );
 
+    final savedFile = await pickAndSaveBookToAppFolder(file);
     // هنا تقدر تأخذ القيم من showUploadDialog لو عدلتها لإرجاع القيم
 
-    final ext = path.extension(file.path).toLowerCase();
+    final ext = path.extension(savedFile.path).toLowerCase();
 
     String content = '';
 
     if (ext == '.txt') {
       content = await File(file.path).readAsString();
-    } else if (ext == '.epub') {
+    }
+    else if (ext == '.epub') {
       final epubBytes = await File(file.path).readAsBytes();
       final book = await EpubReader.readBook(epubBytes);
 
@@ -194,7 +370,8 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
       if (chapters != null && chapters.isNotEmpty) {
         content = gatherChapterText(chapters);
       }
-    } else {
+    }
+    else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('This file type is not supported')),
       );
@@ -208,17 +385,16 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
       return;
     }
 
-    Navigator.of(context).push(
+    /*Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => BookScreen(
           content: content,
           fileName: path.basename(file.path),
         ),
       ),
-    );
+    );*/
+
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -266,9 +442,11 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
       body: TabBarView(
         controller: _tabController,
         children: [
-          Center(child: LibraryScreen()),
+          Center(child: LibraryScreen(
+              key: libraryTabKey,
+          )),
           Center(
-            child: Text('Tap the + button to upload and read a book'),
+            child: MyBooksTab(key: myBooksTabKey),
           ),
         ],
       ),
@@ -289,7 +467,7 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
           ),
         ),
         child: FloatingActionButton(
-          onPressed: _pickAndOpenBook,
+          onPressed: _pickAndUploadBook,
           backgroundColor: Colors.transparent,
           elevation: 0,
           child: Icon(Icons.add,color: Colors.white,),
@@ -459,5 +637,6 @@ Widget buildCustomDrawerHeader(BuildContext context) {
     ]
   );
 }
+
 
 
