@@ -336,37 +336,23 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
     );
 
     final file = await openFile(acceptedTypeGroups: [typeGroup]);
-    if (file == null) return;
-
-    // نستخدم basename بدون امتداد كعنوان مقترح
-    final suggestedTitle = path.basenameWithoutExtension(file.path);
-
-    // نعرض dialog لإدخال العنوان والسماح بالمراجعة
-    await showUploadDialog(
-      context: context,
-      bookFile: file,
-      suggestedTitle: suggestedTitle,
-      onSuccess: () {
-        myBooksTabKey.currentState?.fetchMyBooks(); // بعد نجاح الرفع
-      },
-    );
+    if (file == null) {
+      return;
+    }
 
     final savedFile = await pickAndSaveBookToAppFolder(file);
-    // هنا تقدر تأخذ القيم من showUploadDialog لو عدلتها لإرجاع القيم
-
     final ext = path.extension(savedFile.path).toLowerCase();
 
     String content = '';
 
     if (ext == '.txt') {
-      content = await File(file.path).readAsString();
+      content = await savedFile.readAsString();
     }
     else if (ext == '.epub') {
-      final epubBytes = await File(file.path).readAsBytes();
+      final epubBytes = await savedFile.readAsBytes();
       final book = await EpubReader.readBook(epubBytes);
 
       final chapters = book.Chapters;
-
       if (chapters != null && chapters.isNotEmpty) {
         content = gatherChapterText(chapters);
       }
@@ -385,16 +371,18 @@ class _BooksHomeScreenState extends State<BooksHomeScreen> with SingleTickerProv
       return;
     }
 
-    /*Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => BookScreen(
-          content: content,
-          fileName: path.basename(file.path),
-        ),
-      ),
-    );*/
+    final suggestedTitle = path.basenameWithoutExtension(file.path);
 
+    await showUploadDialog(
+      context: context,
+      bookFile: file,
+      suggestedTitle: suggestedTitle,
+      onSuccess: () {
+        myBooksTabKey.currentState?.fetchMyBooks();
+      },
+    );
   }
+
 
   @override
   Widget build(BuildContext context) {

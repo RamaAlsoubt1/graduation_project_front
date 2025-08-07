@@ -115,14 +115,20 @@ class MyBooksTabState extends State<MyBooksTab>  {
   }
 
 
-  Future<Directory> getDownloadDirectory() async {
+  Future<Directory> getAppBooksDirectory() async {
     if (Platform.isAndroid) {
-      final dir = Directory('/storage/emulated/0/Download');
-      if (await dir.exists()) return dir;
+      final downloadsDir = Directory('/storage/emulated/0/Download/MyAppBooks');
+      if (await downloadsDir.exists()) {
+        return downloadsDir;
+      }
+      else {
+        await downloadsDir.create(recursive: true);
+        return downloadsDir;
+      }
     }
-    return await getDownloadsDirectory() ??
-        await getApplicationDocumentsDirectory();
+    return await getApplicationDocumentsDirectory();
   }
+
 
   String stripHtmlTags(String htmlText) {
     final exp = RegExp(r"<[^>]*>", multiLine: true, caseSensitive: false);
@@ -143,7 +149,7 @@ class MyBooksTabState extends State<MyBooksTab>  {
   }
 
 
-  Future<void> deleteBook(String id) async {
+  Future<void> deleteBook(String id, String title, String extension, BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
     final refreshToken = prefs.getString('refresh_token');
@@ -156,7 +162,7 @@ class MyBooksTabState extends State<MyBooksTab>  {
     }
 
     final response = await http.delete(
-      getDeleteUrl(id.toString()),
+      getDeleteUrl(id),
       headers: {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
@@ -167,6 +173,16 @@ class MyBooksTabState extends State<MyBooksTab>  {
       final data = json.decode(utf8.decode(response.bodyBytes));
       print("response data : $data");
       print("access without refresh");
+
+      // حذف الملف من مجلد التطبيق
+      final dir = await getAppBooksDirectory();
+      print('App books directory: ${dir.path}');
+      final filePath = p.join(dir.path, '$title$extension');
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+      }
+
       setState(() {
         myBooks.removeWhere((book) => book['id'].toString() == id);
       });
@@ -175,8 +191,8 @@ class MyBooksTabState extends State<MyBooksTab>  {
         SnackBar(content: Text(data['en'] ?? 'The book has been deleted.')),
       );
     }
+
     else if (response.statusCode == 401 && refreshToken != null) {
-      // محاولة تحديث التوكن باستخدام refresh token
       final refreshResponse = await http.post(
         refreshtokenurl,
         headers: {'Content-Type': 'application/json'},
@@ -185,11 +201,9 @@ class MyBooksTabState extends State<MyBooksTab>  {
 
       if (refreshResponse.statusCode == 200) {
         final newTokens = json.decode(refreshResponse.body);
-        print("new token $newTokens");
         final newAccessToken = newTokens['access'];
         await prefs.setString('access_token', newAccessToken);
 
-        // إعادة محاولة الطلب الأصلي مع التوكن الجديد
         final del_response = await http.get(
           fetchuserbookurl,
           headers: {
@@ -200,8 +214,6 @@ class MyBooksTabState extends State<MyBooksTab>  {
 
         if (del_response.statusCode == 200) {
           final data = json.decode(utf8.decode(del_response.bodyBytes));
-          print("delete_response $data");
-          print("access after refresh");
           setState(() {
             myBooks = data['data']['books'];
             isLoading = false;
@@ -210,12 +222,11 @@ class MyBooksTabState extends State<MyBooksTab>  {
         else {
           setState(() => isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to fetch data after token refresh')),
+            const SnackBar(content: Text('Failed to fetch data after token refresh')),
           );
         }
       }
       else {
-        // فشل تحديث التوكن، تسجيل خروج وإعادة توجيه
         await prefs.remove('access_token');
         await prefs.remove('refresh_token');
 
@@ -241,10 +252,9 @@ class MyBooksTabState extends State<MyBooksTab>  {
   }
 
 
+
   @override
   Widget build(BuildContext context) {
-    //super.build(context);
-
     if (isLoading) return Center(child: CircularProgressIndicator());
 
     if (myBooks.isEmpty) {
@@ -281,12 +291,17 @@ class MyBooksTabState extends State<MyBooksTab>  {
                 );
 
                 if (confirm == true) {
-                  await deleteBook(book['id'].toString());
+                  await deleteBook(
+                    book['id'].toString(),
+                    book['title'] ?? '',
+                    book['file_extension'] ?? '',
+                    context,
+                  );
                 }
               },
             ),
             onTap: () async {
-              final dir = await getDownloadDirectory();
+              final dir = await getAppBooksDirectory();
               if (dir == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Cannot access download directory')),
@@ -306,14 +321,26 @@ class MyBooksTabState extends State<MyBooksTab>  {
               final filePath = p.join(dir.path, completefileName);
               final ext = book['file_extension'];
               String content = '';
+              final file = File(filePath);
+
+              if (!await file.exists()) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('The file does not exist. Please re-upload it.'),
+                  ),
+                );
+                return;
+              }
 
               if (ext == '.txt') {
                 content = await File(filePath).readAsString();
-              } else if (ext == '.epub') {
+              }
+              else if (ext == '.epub') {
                 final epubBytes = await File(filePath).readAsBytes();
                 final epubBook = await EpubReader.readBook(epubBytes);
                 content = gatherChapterText(epubBook.Chapters ?? []);
-              } else {
+              }
+              else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Unsupported file type')),
                 );
